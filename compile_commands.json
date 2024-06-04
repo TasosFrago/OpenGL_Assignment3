@@ -1,0 +1,146 @@
+[
+  {
+    "arguments": [
+      "/usr/bin/g++",
+      "-std=c++11",
+      "-Wall",
+      "-ggdb",
+      "-I/usr/include",
+      "-I.",
+      "-DDEBUG",
+      "-c",
+      "-o",
+      "src/58633.o",
+      "src/58633.cpp"
+    ],
+    "directory": "/home/tasos/projects/cpp/OpenGL_Erg3",
+    "file": "/home/tasos/projects/cpp/OpenGL_Erg3/src/58633.cpp",
+    "output": "/home/tasos/projects/cpp/OpenGL_Erg3/src/58633.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/g++",
+      "-std=c++11",
+      "-Wall",
+      "-ggdb",
+      "-I/usr/include",
+      "-I.",
+      "-DDEBUG",
+      "-c",
+      "-o",
+      "src/helper.o",
+      "src/helper.cpp"
+    ],
+    "directory": "/home/tasos/projects/cpp/OpenGL_Erg3",
+    "file": "/home/tasos/projects/cpp/OpenGL_Erg3/src/helper.cpp",
+    "output": "/home/tasos/projects/cpp/OpenGL_Erg3/src/helper.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-std=c11",
+      "-Wall",
+      "-ggdb",
+      "-I/usr/include",
+      "-I.",
+      "-DDEBUG",
+      "-c",
+      "-o",
+      "lib/vertexArray/vao.o",
+      "lib/vertexArray/vao.c"
+    ],
+    "directory": "/home/tasos/projects/cpp/OpenGL_Erg3",
+    "file": "/home/tasos/projects/cpp/OpenGL_Erg3/lib/vertexArray/vao.c",
+    "output": "/home/tasos/projects/cpp/OpenGL_Erg3/lib/vertexArray/vao.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-std=c11",
+      "-Wall",
+      "-ggdb",
+      "-I/usr/include",
+      "-I.",
+      "-DDEBUG",
+      "-c",
+      "-o",
+      "lib/windowGlfw.o",
+      "lib/windowGlfw.c"
+    ],
+    "directory": "/home/tasos/projects/cpp/OpenGL_Erg3",
+    "file": "/home/tasos/projects/cpp/OpenGL_Erg3/lib/windowGlfw.c",
+    "output": "/home/tasos/projects/cpp/OpenGL_Erg3/lib/windowGlfw.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-std=c11",
+      "-Wall",
+      "-ggdb",
+      "-I/usr/include",
+      "-I.",
+      "-DDEBUG",
+      "-c",
+      "-o",
+      "lib/shader_utl.o",
+      "lib/shader_utl.c"
+    ],
+    "directory": "/home/tasos/projects/cpp/OpenGL_Erg3",
+    "file": "/home/tasos/projects/cpp/OpenGL_Erg3/lib/shader_utl.c",
+    "output": "/home/tasos/projects/cpp/OpenGL_Erg3/lib/shader_utl.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-std=c11",
+      "-Wall",
+      "-ggdb",
+      "-I/usr/include",
+      "-I.",
+      "-DDEBUG",
+      "-c",
+      "-o",
+      "lib/dbg_assert.o",
+      "lib/dbg_assert.c"
+    ],
+    "directory": "/home/tasos/projects/cpp/OpenGL_Erg3",
+    "file": "/home/tasos/projects/cpp/OpenGL_Erg3/lib/dbg_assert.c",
+    "output": "/home/tasos/projects/cpp/OpenGL_Erg3/lib/dbg_assert.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-std=c11",
+      "-Wall",
+      "-ggdb",
+      "-I/usr/include",
+      "-I.",
+      "-DDEBUG",
+      "-c",
+      "-o",
+      "lib/vertexArray/vbo.o",
+      "lib/vertexArray/vbo.c"
+    ],
+    "directory": "/home/tasos/projects/cpp/OpenGL_Erg3",
+    "file": "/home/tasos/projects/cpp/OpenGL_Erg3/lib/vertexArray/vbo.c",
+    "output": "/home/tasos/projects/cpp/OpenGL_Erg3/lib/vertexArray/vbo.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-std=c11",
+      "-Wall",
+      "-ggdb",
+      "-I/usr/include",
+      "-I.",
+      "-DDEBUG",
+      "-c",
+      "-o",
+      "lib/vertexArray/vbLayout.o",
+      "lib/vertexArray/vbLayout.c"
+    ],
+    "directory": "/home/tasos/projects/cpp/OpenGL_Erg3",
+    "file": "/home/tasos/projects/cpp/OpenGL_Erg3/lib/vertexArray/vbLayout.c",
+    "output": "/home/tasos/projects/cpp/OpenGL_Erg3/lib/vertexArray/vbLayout.o"
+  }
+]
