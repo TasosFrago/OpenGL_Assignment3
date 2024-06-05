@@ -22,9 +22,12 @@ LIB_SRCS = ./lib/dbg_assert.c \
 		   ./lib/vertexArray/vbo.c \
 		   ./lib/vertexArray/vbLayout.c
 
+STBI_SRCS = ./stb_image/stb_image.cpp
+
 CXX_OBJS = $(CXX_SRCS:.cpp=.o)
 
 LIB_OBJS = $(LIB_SRCS:.c=.o)
+STBI_OBJS = $(STBI_SRCS:.cpp=.o)
 
 INCLUDES = -I/usr/include -I.
 
@@ -44,7 +47,7 @@ TARGET = main
 
 all: $(TARGET)
 
-$(TARGET): $(CXX_OBJS) $(LIB_OBJS)
+$(TARGET): $(CXX_OBJS) $(LIB_OBJS) $(STBI_OBJS)
 	$(CXX) -o $@ $^ $(CXXFLAGS)
 
 %.o: %.cpp

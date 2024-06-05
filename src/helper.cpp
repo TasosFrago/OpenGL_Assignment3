@@ -1,7 +1,14 @@
+#include <iostream>
 #include <cstring>
 #include <cstdio>
 
+#ifndef GLEW_GUARD_H
+#define GLEW_GUARD_H
+#include <GL/glew.h>
+#endif // GLEW_GUARD_H
+
 #include "helper.hpp"
+#include "stb_image/stb_image.h"
 
 
 Allocator::~Allocator()
@@ -28,35 +35,47 @@ void Allocator::freeAll()
 	allocations.clear();
 }
 
-std::vector<int> getLightSrcIds(Unum num)
-{
-	std::vector<int> ids;
-	switch(num) {
-	case ID0:
-		ids = { 0, 1, 2, 4, 6 };
-		break;
-	case ID1:
-		ids = { 1, 2, 3, 5, 7 };
-		break;
-	case ID2:
-		ids = { 2, 3, 0, 4, 7 };
-		break;
-	case ID3:
-		ids = { 1, 2, 5, 6, 7 };
-		break;
-	case ID4:
-		ids = { 0, 2, 4, 5, 6 };
-		break;
-	}
-	return ids;
-}
-
 const char *f(Allocator& arena, const char *str, int id)
 {
 	size_t len = strlen(str) + 3;
 	char *res = arena.allocate(len);
 	sprintf(res, str, id);
 	return res;
+}
+
+uint32_t loadTexture(const char *path)
+{
+	uint32_t textureID;
+	glGenTextures(1, &textureID);
+	int width, height, nrComponents;
+
+	unsigned char *data = stbi_load(path, &width, &height, &nrComponents, 0);
+
+	if(!data) {
+		std::cout << "[ERROR]::Failed to load texture at path:(" << path << ")" << std::endl;
+		goto out_free_data;
+	}
+
+	GLenum format;
+	switch(nrComponents) {
+	case 1: format = GL_RED;  break;
+	case 3: format = GL_RGB;  break;
+	case 4: format = GL_RGBA; break;
+	}
+
+	glBindTexture(GL_TEXTURE_2D, textureID);
+	glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
+	glGenerateMipmap(GL_TEXTURE_2D);
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	goto out_free_data;
+
+out_free_data:
+	stbi_image_free(data);
+	return textureID;
 }
 
 glm::mat4 updateModelTrans(CubeRotationAttribs attrb, glm::mat4 &rotationTrans, glm::mat4 &spinTrans, float deltaTime)
