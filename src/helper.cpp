@@ -2,11 +2,6 @@
 #include <cstring>
 #include <cstdio>
 
-#ifndef GLEW_GUARD_H
-#define GLEW_GUARD_H
-#include <GL/glew.h>
-#endif // GLEW_GUARD_H
-
 #include "helper.hpp"
 #include "stb_image/stb_image.h"
 
@@ -43,7 +38,50 @@ const char *f(Allocator& arena, const char *str, int id)
 	return res;
 }
 
-uint32_t loadTexture(const char *path)
+TexData loadTextureAnim(const char *path)
+{
+	uint32_t textureID;
+	glGenTextures(1, &textureID);
+	int width, height, nrComponents;
+
+	unsigned char *data = stbi_load(path, &width, &height, &nrComponents, 0);
+
+	if(!data) {
+		std::cout << "[ERROR]::Failed to load texture at path:(" << path << ")" << std::endl;
+		stbi_image_free(data);
+		return {};
+	}
+
+	GLenum format;
+	switch(nrComponents) {
+	case 1: format = GL_RED;  break;
+	case 3: format = GL_RGB;  break;
+	case 4: format = GL_RGBA; break;
+	}
+
+	glBindTexture(GL_TEXTURE_2D, textureID);
+	glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
+	// glTexSubImage2D(GL_TEXTURE_2D, 0, 0, height/2, width, height, format, GL_UNSIGNED_BYTE, data);
+	glGenerateMipmap(GL_TEXTURE_2D);
+	TexData res = {
+		.ID=textureID,
+		.width=width,
+		.height=height,
+		.nrComponents=nrComponents,
+		.format=format,
+		.data=data
+	};
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+	stbi_image_free(data);
+	return res;
+}
+
+uint32_t loadTextureStatic(const char *path)
 {
 	uint32_t textureID;
 	glGenTextures(1, &textureID);

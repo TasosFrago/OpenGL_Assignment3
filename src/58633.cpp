@@ -64,8 +64,8 @@ int main()
 
 	uint32_t shaderProg = shaderLoadProgram("./shaders/VertexShader_21.glsl", "./shaders/FragmentShader_21.glsl");
 	DBG_ASSERT(shaderProg != 0);
-	uint32_t lightShaderProg = shaderLoadProgram("./shaders/Vertex_light_21.glsl", "./shaders/Fragment_light_21.glsl");
-	DBG_ASSERT(lightShaderProg != 0);
+	// uint32_t movingShader = shaderLoadProgram("./shaders/VertexNoLight.glsl", "./shaders/FragmentNoLight.glsl");
+	// DBG_ASSERT(movingShader != 0);
 
 	VAO_t vao;
 	vaoGen(&vao);
@@ -88,20 +88,21 @@ int main()
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LESS);
 
-	uint32_t diffuseMap = loadTexture("./textures/container2.png");
-	uint32_t specularMap = loadTexture("./textures/container2_specular.png");
+	uint32_t diffuseMap = loadTextureStatic("./textures/container2.png");
+	uint32_t specularMap = loadTextureStatic("./textures/container2_specular.png");
+	TexData animMap = loadTextureAnim("./textures/matrix.jpg");
 
 	glm::mat4 identity = glm::mat4(1.0f);
 
 	shaderUse(shaderProg);
 	glUniform1i(glGetUniformLocation(shaderProg, "material.diffuse"), 0);
 	glUniform1i(glGetUniformLocation(shaderProg, "material.specular"), 1);
+	glUniform1i(glGetUniformLocation(shaderProg, "material.noLight"), 2);
 
-	float light = 0.24f;
+	float light = 0.25f;
 	// Game loop
 	glm::mat4 currentTrans1(1.0f), currentTrans2(1.0f);
-	while (!glfwWindowShouldClose(window.win_ptr))
-	{
+	while (!glfwWindowShouldClose(window.win_ptr)) {
 		glfwPollEvents();
 
 		float time = glfwGetTime();
@@ -114,7 +115,8 @@ int main()
 		// std::cout << std::setprecision(2);
 		// std::cout << 1/deltaTime << " fps \r";
 
-		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+		// glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+		glClearColor(0.2f, 0.2f, 0.3f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		// Render Using the shader program
@@ -126,8 +128,10 @@ int main()
 
 		// Dir Light
 		Allocator ar; // arena allocator
-		glUniform1i(glGetUniformLocation(shaderProg, "dirLightsLength"), len(dirLightSources));
-		for(size_t i = 0; i < len(dirLightSources); i++) {
+		// size_t lightsLen = len(dirLightSources);
+		size_t lightsLen = 0;
+		glUniform1i(glGetUniformLocation(shaderProg, "dirLightsLength"), lightsLen);
+		for(size_t i = 0; i < lightsLen; i++) {
 			glUniform3fv(glGetUniformLocation(shaderProg, f(ar, "dirLights[%d].direction", i)), 1, &(dirLightSources[i])[0]);
 
 			glUniform3fv(glGetUniformLocation(shaderProg, f(ar, "dirLights[%d].ambient", i)), 1, &(glm::vec3(light))[0]);
@@ -170,13 +174,17 @@ int main()
 
 		glUniformMatrix4fv(glGetUniformLocation(shaderProg, "projection"), 1, GL_FALSE, &projection[0][0]);
 
-
 		// bind diffuse map
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, diffuseMap);
 		// bind specular map
 		glActiveTexture(GL_TEXTURE1);
 		glBindTexture(GL_TEXTURE_2D, specularMap);
+
+		glActiveTexture(GL_TEXTURE2);
+		glBindTexture(GL_TEXTURE_2D, animMap.ID);
+
+		glUniform1f(glGetUniformLocation(shaderProg, "time"), time);
 
 		vaoBind(&vao);
 
@@ -185,7 +193,7 @@ int main()
 
 		glUniformMatrix4fv(glGetUniformLocation(shaderProg, "model"), 1, GL_FALSE, &model[0][0]);
 
-		glDrawArrays(GL_TRIANGLES, 0, sizeof(vertices)/sizeof(vertices[0]));
+		glDrawArrays(GL_TRIANGLES, 0, len(vertices));
 		DBG_GLCHECKERROR();
 
 		glfwSwapBuffers(window.win_ptr);

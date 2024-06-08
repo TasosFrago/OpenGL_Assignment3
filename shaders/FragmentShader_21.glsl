@@ -4,6 +4,7 @@ out vec4 FragColor;
 struct Material {
 	sampler2D diffuse;
 	sampler2D specular;
+	sampler2D noLight;
 
 	float shininess;
 };
@@ -42,6 +43,7 @@ uniform PointLight pointLights[MAX_DIR_LIGHTS];
 uniform int pointLightsLength;
 
 uniform Material material;
+uniform float time;
 
 
 vec3 CalcDirLight(DirLight light, vec3 normal, vec3 viewDir);
@@ -64,7 +66,17 @@ void main()
 		result += CalcPointLight(pointLights[i], norm, FragPos, viewDir);
 	}
 
-	gl_FragColor = vec4(result, 1.0);
+	vec3 specularColor = texture(material.specular, TexCoords).rgb;
+	float specularMask = step(0.01, specularColor.r);
+
+	if(length(result) == 0.0) {
+		vec2 movingTexCoords = TexCoords + vec2(0.0, time * 0.1);
+		vec3 noLightColor = texture(material.noLight, movingTexCoords).rgb;
+		result = mix(noLightColor, vec3(0.0), specularMask);
+		// result = vec3(texture(material.noLight, movingTexCoords));
+	}
+
+	FragColor = vec4(result, 1.0);
 }
 
 

@@ -4,6 +4,11 @@
 #include <vector>
 #include <cstdint>
 
+#ifndef GLEW_GUARD_H
+#define GLEW_GUARD_H
+#include <GL/glew.h>
+#endif // GLEW_GUARD_H
+
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -15,6 +20,15 @@ enum LightType {
 	DIRECTIONAL
 };
 
+struct TexData {
+	uint32_t ID;
+	int width;
+	int height;
+	int nrComponents;
+	GLenum format;
+	unsigned char *data;
+};
+
 struct Allocator {
 	std::vector<char *> allocations;
 
@@ -24,7 +38,8 @@ struct Allocator {
 };
 
 const char *f(Allocator& arena, const char *str, int id);
-uint32_t loadTexture(const char *path);
+uint32_t loadTextureStatic(const char *path);
+TexData loadTextureAnim(const char *path);
 
 struct CubeRotationAttribs {
 	float RotationSpeed;
