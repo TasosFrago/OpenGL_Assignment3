@@ -234,8 +234,7 @@ int main()
 
 		glUniformMatrix4fv(glGetUniformLocation(shaderProg, "projection"), 1, GL_FALSE, &projection[0][0]);
 
-		// Light Source
-		glm::vec3 lightSourceColor(1.0f, 1.0f, 1.0f);
+		glm::vec3 lightSourceColor;
 
 		switch(rdEventState) {
 		case NO_CUBE:
@@ -265,10 +264,10 @@ int main()
 			model2 = glm::translate(identity, rdEventPos);
 
 			if(accumulatedTime < 0.5) {
+				lightSourceColor = glm::vec3(1.0f, 1.0f, 1.0f);
 				glUniform1i(glGetUniformLocation(shaderProg, "enablePointLight"), true);
-				// glm::vec3 movingPosition = glm::vec3(model * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
-				// glm::vec4 localCoords = glm::inverse(model) * glm::vec4(movingPosition, 1.0f);
-				// glm::vec3 movingPotion = glm::vec3(localCoords.x, localCoords.y, localCoords.z);
+
+				// Calculate the moving Position in the local space coordinate system
 				glm::vec3 movingPos = glm::vec3(glm::inverse(model) * glm::vec4(rdEventPos, 1.0f));
 
 				glUniform3fv(glGetUniformLocation(shaderProg, "pointLight.Position"), 1, &(movingPos)[0]);
@@ -281,6 +280,7 @@ int main()
 				glUniform3fv(glGetUniformLocation(shaderProg, "pointLight.diffuse"), 1, &(glm::vec3(1.0f, 1.0f, 1.0f))[0]);
 				glUniform3fv(glGetUniformLocation(shaderProg, "pointLight.specular"), 1, &(glm::vec3(1.0f, 1.0f, 1.0f))[0]);
 			} else if(accumulatedTime >= 1.0) {
+				lightSourceColor = glm::vec3(0.0f, 0.0f, 0.0f);
 				glUniform1i(glGetUniformLocation(shaderProg, "enablePointLight"), false);
 				accumulatedTime = 0.0f;
 			}
@@ -290,6 +290,7 @@ int main()
 			glUniformMatrix4fv(glGetUniformLocation(shaderALight, "view"), 1, GL_FALSE, &view[0][0]);
 			glUniformMatrix4fv(glGetUniformLocation(shaderALight, "projection"), 1, GL_FALSE, &projection[0][0]);
 			glUniformMatrix4fv(glGetUniformLocation(shaderALight, "model"), 1, GL_FALSE, &model2[0][0]);
+			glUniform3fv(glGetUniformLocation(shaderALight, "aColor"), 1, &(lightSourceColor)[0]);
 
 			vaoBind(&vao);
 			glDrawArrays(GL_TRIANGLES, 0, len(vertices));
@@ -301,6 +302,8 @@ int main()
 				rdEventState = NO_CUBE;
 			}
 			rdEventPos.z += deltaTime * speed;
+			break;
+		case SECOND_CUBE:
 			break;
 		}
 
