@@ -20,15 +20,6 @@ enum LightType {
 	DIRECTIONAL
 };
 
-struct TexData {
-	uint32_t ID;
-	int width;
-	int height;
-	int nrComponents;
-	GLenum format;
-	unsigned char *data;
-};
-
 struct Allocator {
 	std::vector<char *> allocations;
 
@@ -38,8 +29,7 @@ struct Allocator {
 };
 
 const char *f(Allocator& arena, const char *str, int id);
-uint32_t loadTextureStatic(const char *path);
-TexData loadTextureAnim(const char *path);
+uint32_t loadTexture(const char *path);
 
 struct CubeRotationAttribs {
 	float RotationSpeed;
