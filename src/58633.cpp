@@ -33,8 +33,46 @@
 
 #define len(arr) (sizeof(arr)/sizeof(arr[0]))
 
-#define AM 58633
-#define U (AM % 5)
+#define LIGHT_CONST 0.25f
+
+#define NUM_OF_KEYS 5
+#define KEYS_SPACE 0
+#define KEYS_UP 1
+#define KEYS_DOWN 2
+
+
+// Preprocessor function because I am bored of rewriting for each state and it's more performant then using an actual function
+#define CALC_DIR_LIGHTS(shader) \
+	do { \
+		shaderUse(shader) \
+		glUniform1f(glGetUniformLocation(shader, "material.shininess"), 32.0f); \
+		size_t lightsLen = len(dirLightSources); \
+		Allocator ar; \
+		glUniform1i(glGetUniformLocation(shader, "dirLightsLength"), lightsLen); \
+		for(size_t i = 0; i < lightsLen; i++) { \
+			glUniform3fv(glGetUniformLocation(shader, f(ar, "dirLights[%d].direction", i)), 1, &(dirLightSources[i])[0]); \
+			glUniform3fv(glGetUniformLocation(shader, f(ar, "dirLights[%d].ambient", i)), 1, &(glm::vec3(LIGHT_CONST))[0]); \
+			glUniform3fv(glGetUniformLocation(shader, f(ar, "dirLights[%d].diffuse", i)), 1, &(glm::vec3(LIGHT_CONST))[0]); \
+			glUniform3fv(glGetUniformLocation(shader, f(ar, "dirLights[%d].specular", i)), 1, &(glm::vec3(LIGHT_CONST))[0]); \
+		} \
+		ar.freeAll(); \
+	} while(0);
+
+struct randomEvent {
+	enum {
+		NO_CUBE = 0,
+		FIRST_CUBE = 1,
+		SECOND_CUBE = 2,
+		THIRD_CUBE = 3,
+		FOURTH_CUBE = 4
+	} state;
+	enum {
+		NO_TRANS,
+		NO_CUBE_TO_SECOND,
+		NO_CUBE_TO_THIRD,
+		NO_CUBE_TO_FOURTH
+	} trans;
+};
 
 Camera myCamera(glm::vec3(0.0f, 0.0f, -20.0f));
 
@@ -49,16 +87,25 @@ bool firstMouse = true;
 
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
+	bool *keystates = (bool *)glfwGetWindowUserPointer(window);
 	if(key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
 		glfwSetWindowShouldClose(window, true);
 	}
 	if(key == GLFW_KEY_SPACE && action == GLFW_PRESS) {
-		bool *spacePressed;
-		spacePressed = (bool *)glfwGetWindowUserPointer(window);
-		if(*spacePressed == false) {
-			*spacePressed = true;
+		if(keystates[KEYS_SPACE] == false) {
+			keystates[KEYS_SPACE] = true;
 		}
-		glfwSetWindowUserPointer(window, (void *)spacePressed);
+		// glfwSetWindowUserPointer(window, (void *)keystates);
+	}
+	if(key == GLFW_KEY_UP && (action == GLFW_PRESS || action == GLFW_REPEAT)) {
+		if(keystates[KEYS_UP] == false) {
+			keystates[KEYS_UP] = true;
+		}
+	}
+	if(key == GLFW_KEY_DOWN && (action == GLFW_PRESS || action == GLFW_REPEAT)) {
+		if(keystates[KEYS_DOWN] == false) {
+			keystates[KEYS_DOWN] = true;
+		}
 	}
 }
 
@@ -125,6 +172,8 @@ int main()
 	DBG_ASSERT(shaderProg != 0);
 	uint32_t shaderALight = shaderLoadProgram("./shaders/VertexALight.glsl", "./shaders/FragmentALight.glsl");
 	DBG_ASSERT(shaderProg != 0);
+	uint32_t shaderBCube = shaderLoadProgram("./shaders/VertexBCube.glsl", "./shaders/FragmentBCube.glsl");
+	DBG_ASSERT(shaderProg != 0);
 
 	VAO_t vao;
 	vaoGen(&vao);
@@ -151,6 +200,10 @@ int main()
 	uint32_t specularMap = loadTexture("./textures/container2_specular.png");
 	uint32_t movingMap = loadTexture("./textures/matrix.jpg");
 
+	uint32_t cubeBTexture[2];
+	cubeBTexture[0] = loadTexture("./textures/container.jpg");
+	cubeBTexture[1] = loadTexture("./textures/awesomeface.png");
+
 	glm::mat4 identity = glm::mat4(1.0f);
 
 	shaderUse(shaderProg);
@@ -159,21 +212,28 @@ int main()
 	glUniform1i(glGetUniformLocation(shaderProg, "material.noLight"), 2);
 
 	uint32_t seed = 0;
-	enum randomEventStates {
-		NO_CUBE = 0,
-		FIRST_CUBE = 1,
-		SECOND_CUBE = 2,
-		THIRD_CUBE = 3,
+	randomEvent rdEvent = {
+		.state=randomEvent::NO_CUBE,
+		.trans=randomEvent::NO_TRANS
 	};
-	randomEventStates rdEventState = NO_CUBE;
-	// randomEventStates rdEventState = FIRST_CUBE;
+	// randomEventStates rdEventState = NO_CUBE;
+	// randomEventTransitions rdEventTrans = NO_TRANS;
+
 	glm::vec3 rdEventPos;
 
-	bool spacePressed = false;
-	glfwSetWindowUserPointer(window.win_ptr, &spacePressed);
+	bool eventIsRunning = false;
 
-	float light = 0.25f;
+	bool *keystates = (bool *)malloc(sizeof(bool) * NUM_OF_KEYS);
+	keystates[KEYS_SPACE] = false;
+	keystates[KEYS_UP] = false;
+	keystates[KEYS_DOWN] = false;
+	glfwSetWindowUserPointer(window.win_ptr, keystates);
+
+	// bool spacePressed = false;
+	// glfwSetWindowUserPointer(window.win_ptr, &spacePressed);
+
 	float speed = 2.0f;
+	float offTime = 0.5f;
 	float accumulatedTime = 0.0f;
 
 	glm::mat4 model2 = identity;
@@ -187,25 +247,51 @@ int main()
 		float time = glfwGetTime();
 		// std::cout << time << std::endl;
 
-		if(spacePressed == true) {
-			rdEventState = FIRST_CUBE;
+		if(eventIsRunning) {
+			if(keystates[KEYS_UP]) {
+				if(speed < 20.0f)
+					speed += 0.3f;
+				keystates[KEYS_UP] = false;
+			}
+			if(keystates[KEYS_DOWN]) {
+				if(speed > 0.5)
+					speed -= 0.2f;
+				keystates[KEYS_DOWN] = false;
+			}
 		}
 
-		if(spacePressed == true && rdEventState == FIRST_CUBE) {
+		if(keystates[KEYS_SPACE] && !eventIsRunning) {
 			seed = (uint32_t)(time * 1000);
 			std::srand(seed);
 			float randX = (float)((std::rand() % (15 + 15 + 1)) - 15);
-			std::srand(seed + 5);
+			std::srand(seed + (uint32_t)randX);
 			float randZ = (float)((std::rand() % (15 + 15 + 1)) - 15);
 			rdEventPos = glm::vec3(randX, 15, randZ);
 
-			spacePressed = false;
+			switch (rdEvent.trans) {
+			case randomEvent::NO_TRANS:
+				rdEvent.state = randomEvent::FIRST_CUBE;
+				rdEvent.trans = randomEvent::NO_CUBE_TO_SECOND;
+				rdEventPos.y = 100;
+				break;
+			case randomEvent::NO_CUBE_TO_SECOND:
+				rdEvent.state = randomEvent::SECOND_CUBE;
+				rdEvent.trans = randomEvent::NO_CUBE_TO_THIRD;
+				break;
+			case randomEvent::NO_CUBE_TO_THIRD:
+				rdEvent.state = randomEvent::THIRD_CUBE;
+				rdEvent.trans = randomEvent::NO_CUBE_TO_FOURTH;
+				break;
+			case randomEvent::NO_CUBE_TO_FOURTH:
+				rdEvent.state = randomEvent::FOURTH_CUBE;
+				rdEvent.trans = randomEvent::NO_TRANS;
+			}
+			eventIsRunning = true;
 		}
 
 		currentFrameTime = time;
 		deltaTime = currentFrameTime - previousFrameTime;
 		previousFrameTime = currentFrameTime;
-		accumulatedTime += deltaTime;
 
 		// glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 		glClearColor(0.2f, 0.2f, 0.3f, 1.0f);
@@ -236,34 +322,19 @@ int main()
 
 		glm::vec3 lightSourceColor;
 
-		switch(rdEventState) {
-		case NO_CUBE:
-			shaderUse(shaderProg);
-			glUniform1f(glGetUniformLocation(shaderProg, "material.shininess"), 32.0f);
-
+		switch(rdEvent.state) {
+		case randomEvent::NO_CUBE:
 			glUniform3fv(glGetUniformLocation(shaderProg, "viewPos"), 1, &myCamera.Position[0]);
-			{ // Dir Light
-				size_t lightsLen = len(dirLightSources);
-				Allocator ar; // arena Allocator
-				glUniform1i(glGetUniformLocation(shaderProg, "dirLightsLength"), lightsLen);
-				for(size_t i = 0; i < lightsLen; i++) {
-					glUniform3fv(glGetUniformLocation(shaderProg, f(ar, "dirLights[%d].direction", i)), 1, &(dirLightSources[i])[0]);
-
-					glUniform3fv(glGetUniformLocation(shaderProg, f(ar, "dirLights[%d].ambient", i)), 1, &(glm::vec3(light))[0]);
-					glUniform3fv(glGetUniformLocation(shaderProg, f(ar, "dirLights[%d].diffuse", i)), 1, &(glm::vec3(light))[0]);
-					glUniform3fv(glGetUniformLocation(shaderProg, f(ar, "dirLights[%d].specular", i)), 1, &(glm::vec3(light))[0]);
-
-				}
-				ar.freeAll();
-			}
+			CALC_DIR_LIGHTS(shaderProg);
 			glUniform1i(glGetUniformLocation(shaderProg, "enablePointLight"), false);
 			break;
-		case FIRST_CUBE:
+		case randomEvent::FIRST_CUBE:
+			accumulatedTime += deltaTime;
 			shaderUse(shaderProg);
 			glUniform1i(glGetUniformLocation(shaderProg, "dirLightsLength"), 0);
 			model2 = glm::translate(identity, rdEventPos);
 
-			if(accumulatedTime < 0.5) {
+			if(accumulatedTime < offTime) {
 				lightSourceColor = glm::vec3(1.0f, 1.0f, 1.0f);
 				glUniform1i(glGetUniformLocation(shaderProg, "enablePointLight"), true);
 
@@ -279,10 +350,11 @@ int main()
 				glUniform3fv(glGetUniformLocation(shaderProg, "pointLight.ambient"), 1, &(glm::vec3(1.0f, 1.0f, 1.0f))[0]);
 				glUniform3fv(glGetUniformLocation(shaderProg, "pointLight.diffuse"), 1, &(glm::vec3(1.0f, 1.0f, 1.0f))[0]);
 				glUniform3fv(glGetUniformLocation(shaderProg, "pointLight.specular"), 1, &(glm::vec3(1.0f, 1.0f, 1.0f))[0]);
-			} else if(accumulatedTime >= 1.0) {
+			} else if(accumulatedTime >= (offTime * 2)) {
+				accumulatedTime = 0.0f;
+			} else {
 				lightSourceColor = glm::vec3(0.0f, 0.0f, 0.0f);
 				glUniform1i(glGetUniformLocation(shaderProg, "enablePointLight"), false);
-				accumulatedTime = 0.0f;
 			}
 
 			shaderUse(shaderALight);
@@ -298,12 +370,48 @@ int main()
 
 			if(rdEventPos.y > 1.0f) {
 				rdEventPos.y -= deltaTime * speed;
-			} else if(rdEventPos.z > 20) {
-				rdEventState = NO_CUBE;
+			} else if(rdEventPos.z > 23) { // I made it slide a bit off the platform so it shows the light leaving the border
+				rdEvent.state = randomEvent::NO_CUBE;
+				eventIsRunning = false;
+				keystates[KEYS_SPACE] = false;
+			} else {
+				rdEventPos.z += deltaTime * speed;
 			}
-			rdEventPos.z += deltaTime * speed;
 			break;
-		case SECOND_CUBE:
+		case randomEvent::SECOND_CUBE:
+			model2 = glm::translate(identity, rdEventPos);
+
+			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_2D, cubeBTexture[0]);
+
+			glActiveTexture(GL_TEXTURE1);
+			glBindTexture(GL_TEXTURE_2D, cubeBTexture[1]);
+
+			shaderUse(shaderBCube);
+
+			glUniformMatrix4fv(glGetUniformLocation(shaderBCube, "view"), 1, GL_FALSE, &view[0][0]);
+			glUniformMatrix4fv(glGetUniformLocation(shaderBCube, "projection"), 1, GL_FALSE, &projection[0][0]);
+			glUniformMatrix4fv(glGetUniformLocation(shaderBCube, "model"), 1, GL_FALSE, &model2[0][0]);
+			glUniform1i(glGetUniformLocation(shaderBCube, "texture1"), 0);
+			glUniform1i(glGetUniformLocation(shaderBCube, "texture2"), 1);
+
+			vaoBind(&vao);
+			glDrawArrays(GL_TRIANGLES, 0, len(vertices));
+			DBG_GLCHECKERROR();
+
+			if(rdEventPos.y > 1.0f) {
+				rdEventPos.y -= deltaTime * speed;
+			} else if(rdEventPos.z > 23) { // I made it slide a bit off the platform so it shows the light leaving the border
+				rdEvent.state = randomEvent::NO_CUBE;
+				eventIsRunning = false;
+				keystates[KEYS_SPACE] = false;
+			} else {
+				rdEventPos.z += deltaTime * speed;
+			}
+			break;
+		case randomEvent::THIRD_CUBE:
+			break;
+		case randomEvent::FOURTH_CUBE:
 			break;
 		}
 
@@ -322,7 +430,7 @@ int main()
 
 		vaoBind(&vao);
 
-		model = glm::scale(identity, glm::vec3(6.4f, 1.0f, 6.4f));
+		model = glm::scale(identity, glm::vec3(6.4f, 1.0f, 6.4f)); // After trial and error 6.4 makes it 20 units acros the two axis
 
 		glUniformMatrix4fv(glGetUniformLocation(shaderProg, "model"), 1, GL_FALSE, &model[0][0]);
 
