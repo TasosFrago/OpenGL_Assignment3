@@ -46,7 +46,7 @@
 	do { \
 		shaderUse(shader) \
 		glUniform1f(glGetUniformLocation(shader, "material.shininess"), 32.0f); \
-		size_t lightsLen = len(dirLightSources); \
+		size_t lightsLen = len(dirLightSources);				\
 		Allocator ar; \
 		glUniform1i(glGetUniformLocation(shader, "dirLightsLength"), lightsLen); \
 		for(size_t i = 0; i < lightsLen; i++) { \
@@ -174,6 +174,8 @@ int main()
 	DBG_ASSERT(shaderProg != 0);
 	uint32_t shaderBCube = shaderLoadProgram("./shaders/VertexBCube.glsl", "./shaders/FragmentBCube.glsl");
 	DBG_ASSERT(shaderProg != 0);
+	uint32_t shaderCCube = shaderLoadProgram("./shaders/VertexCCube.glsl", "./shaders/FragmentCCube.glsl");
+	DBG_ASSERT(shaderProg != 0);
 
 	VAO_t vao;
 	vaoGen(&vao);
@@ -254,10 +256,12 @@ int main()
 				keystates[KEYS_UP] = false;
 			}
 			if(keystates[KEYS_DOWN]) {
-				if(speed > 0.5)
-					speed -= 0.2f;
+				if(speed > 0.0)
+					speed -= 0.3f;
 				keystates[KEYS_DOWN] = false;
 			}
+			if(speed < 0)
+				speed = 0;
 		}
 
 		if(keystates[KEYS_SPACE] && !eventIsRunning) {
@@ -379,6 +383,11 @@ int main()
 			}
 			break;
 		case randomEvent::SECOND_CUBE:
+			// Calculate the dir lights for the platform
+			glUniform3fv(glGetUniformLocation(shaderProg, "viewPos"), 1, &myCamera.Position[0]);
+			CALC_DIR_LIGHTS(shaderProg);
+			glUniform1i(glGetUniformLocation(shaderProg, "enablePointLight"), false);
+
 			model2 = glm::translate(identity, rdEventPos);
 
 			glActiveTexture(GL_TEXTURE0);
@@ -387,7 +396,9 @@ int main()
 			glActiveTexture(GL_TEXTURE1);
 			glBindTexture(GL_TEXTURE_2D, cubeBTexture[1]);
 
+			CALC_DIR_LIGHTS(shaderBCube);
 			shaderUse(shaderBCube);
+			glUniform3fv(glGetUniformLocation(shaderBCube, "viewPos"), 1, &myCamera.Position[0]);
 
 			glUniformMatrix4fv(glGetUniformLocation(shaderBCube, "view"), 1, GL_FALSE, &view[0][0]);
 			glUniformMatrix4fv(glGetUniformLocation(shaderBCube, "projection"), 1, GL_FALSE, &projection[0][0]);
@@ -410,6 +421,42 @@ int main()
 			}
 			break;
 		case randomEvent::THIRD_CUBE:
+			// Calculate the dir lights for the platform
+			glUniform3fv(glGetUniformLocation(shaderProg, "viewPos"), 1, &myCamera.Position[0]);
+			CALC_DIR_LIGHTS(shaderProg);
+			glUniform1i(glGetUniformLocation(shaderProg, "enablePointLight"), false);
+
+			model2 = glm::translate(identity, rdEventPos);
+
+			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_2D, diffuseMap);
+
+			glActiveTexture(GL_TEXTURE1);
+			glBindTexture(GL_TEXTURE_2D, diffuseMap);
+
+			CALC_DIR_LIGHTS(shaderCCube);
+			shaderUse(shaderCCube);
+			glUniform3fv(glGetUniformLocation(shaderCCube, "viewPos"), 1, &myCamera.Position[0]);
+
+			glUniformMatrix4fv(glGetUniformLocation(shaderCCube, "view"), 1, GL_FALSE, &view[0][0]);
+			glUniformMatrix4fv(glGetUniformLocation(shaderCCube, "projection"), 1, GL_FALSE, &projection[0][0]);
+			glUniformMatrix4fv(glGetUniformLocation(shaderCCube, "model"), 1, GL_FALSE, &model2[0][0]);
+			glUniform1i(glGetUniformLocation(shaderCCube, "texture1"), 0);
+			glUniform1i(glGetUniformLocation(shaderCCube, "texture2"), 1);
+
+			vaoBind(&vao);
+			glDrawArrays(GL_TRIANGLES, 0, len(vertices));
+			DBG_GLCHECKERROR();
+
+			if(rdEventPos.y > 1.0f) {
+				rdEventPos.y -= deltaTime * speed;
+			} else if(rdEventPos.z > 23) { // I made it slide a bit off the platform so it shows the light leaving the border
+				rdEvent.state = randomEvent::NO_CUBE;
+				eventIsRunning = false;
+				keystates[KEYS_SPACE] = false;
+			} else {
+				rdEventPos.z += deltaTime * speed;
+			}
 			break;
 		case randomEvent::FOURTH_CUBE:
 			break;
