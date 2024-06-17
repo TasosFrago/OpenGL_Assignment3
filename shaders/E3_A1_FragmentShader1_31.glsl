@@ -74,7 +74,6 @@ void main()
 		vec2 movingTexCoords = TexCoords + vec2(0.0, time * 0.1);
 		vec3 noLightColor = texture(material.noLight, movingTexCoords).rgb;
 		result = mix(noLightColor, vec3(0.0), specularMask);
-		// result = vec3(texture(material.noLight, movingTexCoords));
 	}
 
 	FragColor = vec4(result, 1.0);

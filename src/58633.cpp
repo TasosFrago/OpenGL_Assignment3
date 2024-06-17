@@ -39,6 +39,7 @@
 #define KEYS_SPACE 0
 #define KEYS_UP 1
 #define KEYS_DOWN 2
+#define KEYS_TAB 3
 
 
 // Preprocessor function because I am bored of rewriting for each state and it's more performant then using an actual function
@@ -74,7 +75,7 @@ struct randomEvent {
 	} trans;
 };
 
-Camera myCamera(glm::vec3(0.0f, 0.0f, -20.0f));
+Camera myCamera(glm::vec3(0.0f, 60.0f, 0.0f), glm::vec3(0.0, 1.0, 0.0), 90.0f, -90.0f);
 
 float deltaTime = 0.0f;
 float currentFrameTime = 0.0f;
@@ -107,6 +108,13 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 			keystates[KEYS_DOWN] = true;
 		}
 	}
+	if(key == GLFW_KEY_TAB && action == GLFW_PRESS) {
+		if(keystates[KEYS_TAB]) {
+			keystates[KEYS_TAB] = !keystates[KEYS_TAB];
+		} else {
+			keystates[KEYS_TAB] = !keystates[KEYS_TAB];
+		}
+	}
 }
 
 void ProcessInput(GLFWwindow* givenWindow)
@@ -126,9 +134,7 @@ void ProcessInput(GLFWwindow* givenWindow)
 
 void MousePositionCallback(GLFWwindow* givenWindow, double givenMousePositionX, double givenMousePositionY)
 {
-	//std::cout << givenMousePositionX << std::endl;
-	//std::cout << givenMousePositionY << std::endl;
-
+	bool *keystates = (bool *)glfwGetWindowUserPointer(givenWindow);
 	if(firstMouse) {
 		previousMousePositonX = givenMousePositionX;
 		previousMousePositonY = givenMousePositionY;
@@ -141,7 +147,8 @@ void MousePositionCallback(GLFWwindow* givenWindow, double givenMousePositionX, 
 	previousMousePositonX = givenMousePositionX;
 	previousMousePositonY = givenMousePositionY;
 
-	myCamera.ProcessMouseMovement(offsetX, offsetY);
+	if(keystates[KEYS_TAB])
+		myCamera.ProcessMouseMovement(offsetX, offsetY);
 }
 
 void ScrollCallback(GLFWwindow* givenWindow, double givenScrollOffsetX, double givenScrollOffsetY)
@@ -168,13 +175,15 @@ int main()
 	// glfwSetInputMode(window.win_ptr, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 	std::cout << glGetString(GL_VERSION) << std::endl;
 
-	uint32_t shaderProg = shaderLoadProgram("./shaders/VertexShader_21.glsl", "./shaders/FragmentShader_21.glsl");
+	uint32_t shaderProg = shaderLoadProgram("./shaders/VertexShader1_31.glsl", "./shaders/E3_A1_FragmentShader1_31.glsl");
 	DBG_ASSERT(shaderProg != 0);
-	uint32_t shaderALight = shaderLoadProgram("./shaders/VertexALight.glsl", "./shaders/FragmentALight.glsl");
+	uint32_t shaderALight = shaderLoadProgram("./shaders/VertexShader2_31.glsl", "./shaders/E3_A1_FragmentShader2_31.glsl");
 	DBG_ASSERT(shaderProg != 0);
-	uint32_t shaderBCube = shaderLoadProgram("./shaders/VertexBCube.glsl", "./shaders/FragmentBCube.glsl");
+	uint32_t shaderBCube = shaderLoadProgram("./shaders/VertexShader3_31.glsl", "./shaders/E3_A1_FragmentShader3_31.glsl");
 	DBG_ASSERT(shaderProg != 0);
-	uint32_t shaderCCube = shaderLoadProgram("./shaders/VertexCCube.glsl", "./shaders/FragmentCCube.glsl");
+	uint32_t shaderCCube = shaderLoadProgram("./shaders/VertexShader4_31.glsl", "./shaders/E3_A1_FragmentShader4_31.glsl");
+	DBG_ASSERT(shaderProg != 0);
+	uint32_t shaderDCube = shaderLoadProgram("./shaders/VertexShader5_31.glsl", "./shaders/E3_A1_FragmentShader5_31.glsl");
 	DBG_ASSERT(shaderProg != 0);
 
 	VAO_t vao;
@@ -206,6 +215,10 @@ int main()
 	cubeBTexture[0] = loadTexture("./textures/container.jpg");
 	cubeBTexture[1] = loadTexture("./textures/awesomeface.png");
 
+	uint32_t cubeDTexture[2];
+	cubeDTexture[0] = loadTexture("./textures/brickwall.jpg");
+	cubeDTexture[1] = loadTexture("./textures/brickwall_normal.jpg");
+
 	glm::mat4 identity = glm::mat4(1.0f);
 
 	shaderUse(shaderProg);
@@ -229,6 +242,7 @@ int main()
 	keystates[KEYS_SPACE] = false;
 	keystates[KEYS_UP] = false;
 	keystates[KEYS_DOWN] = false;
+	keystates[KEYS_TAB] = false;
 	glfwSetWindowUserPointer(window.win_ptr, keystates);
 
 	// bool spacePressed = false;
@@ -237,14 +251,20 @@ int main()
 	float speed = 2.0f;
 	float offTime = 0.5f;
 	float accumulatedTime = 0.0f;
+	float yLim = 1.0f;
 
-	glm::mat4 model2 = identity;
 	glm::mat4 model = identity;
+	glm::mat4 model2 = identity;
+	std::cout << "\n-------------------------------------------------------------------" << std::endl;
+	std::cout << "You can move around with the camera if you press the <TAB> key." << std::endl;
+	std::cout << "You can also later disable it with the <TAB> key." << std::endl;
+	std::cout << "-------------------------------------------------------------------" << std::endl;
 	// Game loop
 	while (!glfwWindowShouldClose(window.win_ptr)) {
 		glfwPollEvents();
 
-		ProcessInput(window.win_ptr);
+		if(keystates[KEYS_TAB])
+			ProcessInput(window.win_ptr);
 
 		float time = glfwGetTime();
 		// std::cout << time << std::endl;
@@ -372,7 +392,7 @@ int main()
 			glDrawArrays(GL_TRIANGLES, 0, len(vertices));
 			DBG_GLCHECKERROR();
 
-			if(rdEventPos.y > 1.0f) {
+			if(rdEventPos.y > yLim) {
 				rdEventPos.y -= deltaTime * speed;
 			} else if(rdEventPos.z > 23) { // I made it slide a bit off the platform so it shows the light leaving the border
 				rdEvent.state = randomEvent::NO_CUBE;
@@ -410,9 +430,9 @@ int main()
 			glDrawArrays(GL_TRIANGLES, 0, len(vertices));
 			DBG_GLCHECKERROR();
 
-			if(rdEventPos.y > 1.0f) {
+			if(rdEventPos.y > yLim) {
 				rdEventPos.y -= deltaTime * speed;
-			} else if(rdEventPos.z > 23) { // I made it slide a bit off the platform so it shows the light leaving the border
+			} else if(rdEventPos.z > 20) {
 				rdEvent.state = randomEvent::NO_CUBE;
 				eventIsRunning = false;
 				keystates[KEYS_SPACE] = false;
@@ -448,9 +468,9 @@ int main()
 			glDrawArrays(GL_TRIANGLES, 0, len(vertices));
 			DBG_GLCHECKERROR();
 
-			if(rdEventPos.y > 1.0f) {
+			if(rdEventPos.y > yLim) {
 				rdEventPos.y -= deltaTime * speed;
-			} else if(rdEventPos.z > 23) { // I made it slide a bit off the platform so it shows the light leaving the border
+			} else if(rdEventPos.z > 20) {
 				rdEvent.state = randomEvent::NO_CUBE;
 				eventIsRunning = false;
 				keystates[KEYS_SPACE] = false;
@@ -459,6 +479,72 @@ int main()
 			}
 			break;
 		case randomEvent::FOURTH_CUBE:
+			// Calculate the dir lights for the platform
+			glUniform3fv(glGetUniformLocation(shaderProg, "viewPos"), 1, &myCamera.Position[0]);
+			CALC_DIR_LIGHTS(shaderProg);
+			glUniform1i(glGetUniformLocation(shaderProg, "enablePointLight"), false);
+
+			model2 = glm::translate(identity, rdEventPos);
+			{
+				std::vector<float> verts = processVertexData(vertices, len(vertices));
+				VAO_t vaoN;
+				vaoGen(&vaoN);
+				vaoBind(&vaoN);
+
+				VBO_t vboN;
+				vboGen(&vboN, &verts[0], sizeof(float) * verts.size(), GL_STATIC_DRAW);
+
+				VBLayout_t vblN;
+				vbl_new(&vblN, 14 * sizeof(float));
+				vbl_push_float(&vblN, 3);
+				vbl_push_float(&vblN, 3);
+				vbl_push_float(&vblN, 2);
+				vbl_push_float(&vblN, 3);
+				vbl_push_float(&vblN, 3);
+
+				vaoAddBuffer(&vaoN, &vboN, &vblN);
+				DBG_GLCHECKERROR();
+
+				vbl_destroy(&vblN);
+
+				glActiveTexture(GL_TEXTURE0);
+				glBindTexture(GL_TEXTURE_2D, cubeDTexture[0]);
+				glActiveTexture(GL_TEXTURE1);
+				glBindTexture(GL_TEXTURE_2D, cubeDTexture[1]);
+
+				shaderUse(shaderDCube);
+
+				glUniformMatrix4fv(glGetUniformLocation(shaderDCube, "view"), 1, GL_FALSE, &view[0][0]);
+				glUniformMatrix4fv(glGetUniformLocation(shaderDCube, "projection"), 1, GL_FALSE, &projection[0][0]);
+				glUniformMatrix4fv(glGetUniformLocation(shaderDCube, "model"), 1, GL_FALSE, &model2[0][0]);
+
+				glUniform3fv(glGetUniformLocation(shaderDCube, "viewPos"), 1, &myCamera.Position[0]);
+
+				size_t dirLightsLen = len(dirLightSources);
+				glUniform1i(glGetUniformLocation(shaderDCube, "numLights"), dirLightsLen);
+				glUniform1i(glGetUniformLocation(shaderDCube, "numLights2"), dirLightsLen);
+				glUniform3fv(glGetUniformLocation(shaderDCube, "lightDirs"), dirLightsLen, &(dirLightSources)[0][0]);
+				// Allocator ar;
+				// for(size_t i = dirLightsLen - 1; i >= 0; i--) {
+				// 	glUniform3fv(glGetUniformLocation(shaderDCube, f(ar, "lightDirs[%d]", i)), 1, &(dirLightSources[i])[0]);
+				// }
+				// ar.freeAll();
+
+				glUniform1i(glGetUniformLocation(shaderDCube, "diffuseMap"), 0);
+				glUniform1i(glGetUniformLocation(shaderDCube, "normalMap"), 1);
+
+				glDrawArrays(GL_TRIANGLES, 0, verts.size());
+				vaoDelete(&vaoN);
+			}
+			if(rdEventPos.y > yLim) {
+				rdEventPos.y -= deltaTime * speed;
+			} else if(rdEventPos.z > 20) {
+				rdEvent.state = randomEvent::NO_CUBE;
+				eventIsRunning = false;
+				keystates[KEYS_SPACE] = false;
+			} else {
+				rdEventPos.z += deltaTime * speed;
+			}
 			break;
 		}
 

@@ -41,4 +41,6 @@ struct CubeRotationAttribs {
 };
 glm::mat4 updateModelTrans(CubeRotationAttribs attrb, glm::mat4 &rotationTrans, glm::mat4 &spinTrans, float deltaTime);
 
+std::vector<float> processVertexData(const float *rVertices, size_t vSize);
+
 #endif // HELPER_H

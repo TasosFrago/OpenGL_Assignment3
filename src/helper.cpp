@@ -90,3 +90,81 @@ glm::mat4 updateModelTrans(CubeRotationAttribs attrb, glm::mat4 &rotationTrans, 
 	}
 	return (model2Scale * rotationTrans * model2Trans * spinTrans);
 }
+
+struct Vertex {
+	glm::vec3 Position;
+	glm::vec3 Normal;
+	glm::vec2 TexCoords;
+	glm::vec3 Tangent;
+	glm::vec3 Bitangent;
+};
+
+void calcTangBitang(Vertex& v0, Vertex& v1, Vertex& v2)
+{
+	// Compute Edges
+	glm::vec3 edge1 = v1.Position - v0.Position;
+	glm::vec3 edge2 = v2.Position - v0.Position;
+	// Compute delta UV
+	glm::vec2 deltaUV1 = v1.TexCoords - v0.TexCoords;
+	glm::vec2 deltaUV2 = v2.TexCoords - v0.TexCoords;
+
+	// Calculate inverse of the determinant
+	float f = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV2.x * deltaUV1.y);
+
+	// Calculate tangent
+	glm::vec3 tangent;
+	tangent.x = f * (deltaUV2.y * edge1.x - deltaUV1.y * edge2.x);
+	tangent.y = f * (deltaUV2.y * edge1.y - deltaUV1.y * edge2.y);
+	tangent.z = f * (deltaUV2.y * edge1.z - deltaUV1.y * edge2.z);
+	tangent = glm::normalize(tangent);
+
+	// Calculate bitangent
+	glm::vec3 bitangent;
+	bitangent.x = f * (-deltaUV2.x * edge1.x + deltaUV1.x * edge2.x);
+	bitangent.y = f * (-deltaUV2.x * edge1.y + deltaUV1.x * edge2.y);
+	bitangent.z = f * (-deltaUV2.x * edge1.z + deltaUV1.x * edge2.z);
+	bitangent = glm::normalize(bitangent);
+
+	// Assign to vertices
+	v0.Tangent = v1.Tangent = v2.Tangent = tangent;
+	v0.Bitangent = v1.Bitangent = v2.Bitangent = bitangent;
+}
+
+std::vector<float> processVertexData(const float *rVertices, size_t vSize)
+{
+	// Convert raw vertex array to Vertex structures
+	std::vector<Vertex> vertices;
+	for(size_t i = 0; i < vSize; i +=8) {
+		Vertex vertex;
+		vertex.Position = glm::vec3(rVertices[i], rVertices[i + 1], rVertices[i + 2]);
+		vertex.Normal = glm::vec3(rVertices[i+3], rVertices[i+4], rVertices[i+5]);
+		vertex.TexCoords = glm::vec2(rVertices[i+6], rVertices[i+7]);
+		vertices.push_back(vertex);
+	}
+
+	// Calculate tangent and bitangent for each triangle
+	for(size_t i = 0; i < vertices.size(); i += 3) {
+		calcTangBitang(vertices[i], vertices[i+1], vertices[i+2]);
+	}
+
+	// Calculate Vertex structures back to array format
+	std::vector<float> extendedVertices;
+	for(const auto& vertex : vertices) {
+		extendedVertices.push_back(vertex.Position.x);
+		extendedVertices.push_back(vertex.Position.y);
+		extendedVertices.push_back(vertex.Position.z);
+		extendedVertices.push_back(vertex.Normal.x);
+		extendedVertices.push_back(vertex.Normal.y);
+		extendedVertices.push_back(vertex.Normal.z);
+		extendedVertices.push_back(vertex.TexCoords.x);
+		extendedVertices.push_back(vertex.TexCoords.y);
+		extendedVertices.push_back(vertex.Tangent.x);
+		extendedVertices.push_back(vertex.Tangent.y);
+		extendedVertices.push_back(vertex.Tangent.z);
+		extendedVertices.push_back(vertex.Bitangent.x);
+		extendedVertices.push_back(vertex.Bitangent.y);
+		extendedVertices.push_back(vertex.Bitangent.z);
+	}
+
+	return extendedVertices;
+}
