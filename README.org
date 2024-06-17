@@ -1,0 +1,23 @@
+* OpenGL Erg 3
+
+Η εργασία 3 του μαθήματος Γραφικά με Υπολογιστές.
+
+** Build Steps
+
+Η εργασία έχει ένα Makefile για να γίνει compiled σε πλατφόρμα linux.
+
+Για Ubuntu χρείαζονται τα packages: glfw, glew και pkg-config.
+Παράδειγμα εγκατάστασης τους στα Ubuntu:
+
+#+begin_src shell
+sudo apt install libglfw3-dev
+sudo apt install libglew-dev
+sudo apt install libgl1-mesa-dev
+#+end_src
+
+Η εργασία γίνεται compiled με την εντολή ~make~. Με την εντολή ~make exec~ μπορούμε να τρέξουμε την άσκηση. Παράδειγμα:
+
+#+begin_src shell
+make
+make exec
+#+end_src
